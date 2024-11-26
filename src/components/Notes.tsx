@@ -32,6 +32,7 @@ export default function Notes({ initialNotes = [] }: { initialNotes?: Note[] }) 
         const data = await response.json();
         setNotes(data.notes);
       } catch (error) {
+        console.error('Failed to fetch notes:', error);
         toast({
           title: "Error",
           description: "Failed to fetch notes",
@@ -62,6 +63,7 @@ export default function Notes({ initialNotes = [] }: { initialNotes?: Note[] }) 
         description: "Note deleted successfully",
       });
     } catch (error) {
+      console.error('Failed to delete note:', error);
       toast({
         title: "Error",
         description: "Failed to delete note",

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, Request } from "next/server";
 import connectDB from "@/dbConfig";
 import Note from "@/model/note";
 import { auth } from "@/auth";
@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 
 connectDB();
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
     try {
         const session = await auth();
         if (!session || !session.user?.email) {
@@ -19,13 +19,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        const reqBody = await request.json();
+        const reqBody = await req.json();
         const { title, content } = reqBody;
 
         const newNote = new Note({
             title,
             content,
-            userId: user._id // Use the actual MongoDB ObjectId
+            userId: user._id
         });
 
         const savedNote = await newNote.save();
@@ -36,12 +36,13 @@ export async function POST(request: NextRequest) {
             savedNote
         });
 
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error) {
+        console.error('Error creating note:', error);
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to create note' }, { status: 500 });
     }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
     try {
         const session = await auth();
         if (!session || !session.user?.email) {
@@ -55,14 +56,15 @@ export async function GET(request: NextRequest) {
         }
 
         const notes = await Note.find({ userId: user._id }).sort({ createdAt: -1 });
-        
+
         return NextResponse.json({
             message: "Notes fetched successfully",
             success: true,
             notes
         });
 
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error) {
+        console.error('Error fetching notes:', error);
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to fetch notes' }, { status: 500 });
     }
 }

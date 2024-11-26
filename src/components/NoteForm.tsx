@@ -22,31 +22,33 @@ export default function NoteForm({ noteId }: NoteFormProps) {
     const { toast } = useToast();
 
     useEffect(() => {
+        const fetchNoteData = async () => {
+            try {
+                const response = await axios.get(`/api/notes/${noteId}`);
+                const note = response.data.note;
+                setTitle(note.title);
+                setContent(note.content);
+            } catch (error) {
+                const errorMessage = error instanceof Error && 'response' in error 
+                    ? (error as { response?: { data?: { error?: string } } }).response?.data?.error 
+                    : 'Failed to fetch note';
+                toast({
+                    title: 'Error',
+                    description: errorMessage,
+                    variant: 'destructive',
+                });
+                router.push('/notes');
+            } finally {
+                setFetchLoading(false);
+            }
+        };
+
         if (noteId) {
-            fetchNote();
+            fetchNoteData();
         }
-    }, [noteId]);
+    }, [noteId, toast, router]);
 
-    const fetchNote = async () => {
-        try {
-            const response = await axios.get(`/api/notes/${noteId}`);
-            const note = response.data.note;
-            setTitle(note.title);
-            setContent(note.content);
-        } catch (error: any) {
-            const errorMessage = error.response?.data?.error || 'Failed to fetch note';
-            toast({
-                title: 'Error',
-                description: errorMessage,
-                variant: 'destructive',
-            });
-            router.push('/notes');
-        } finally {
-            setFetchLoading(false);
-        }
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
 
@@ -65,8 +67,10 @@ export default function NoteForm({ noteId }: NoteFormProps) {
                 });
             }
             router.push('/notes');
-        } catch (error: any) {
-            const errorMessage = error.response?.data?.error || 'Failed to save note';
+        } catch (error) {
+            const errorMessage = error instanceof Error && 'response' in error 
+                ? (error as { response?: { data?: { error?: string } } }).response?.data?.error 
+                : 'Failed to save note';
             toast({
                 title: 'Error',
                 description: errorMessage,

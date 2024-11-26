@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import connectDB from "@/dbConfig";
 import Note from "@/model/note";
 import { auth } from "@/auth";
@@ -6,9 +6,13 @@ import mongoose from "mongoose";
 
 connectDB();
 
+interface RouteParams {
+    id: string;
+}
+
 export async function PUT(
-    request: NextRequest,
-    { params }: { params: { id: string } }
+    request: Request,
+    { params }: { params: RouteParams }
 ) {
     try {
         const session = await auth();
@@ -16,7 +20,6 @@ export async function PUT(
             return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
         }
 
-        // Get user ID from email
         const user = await mongoose.models.User.findOne({ email: session.user.email });
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -45,14 +48,15 @@ export async function PUT(
             note
         });
 
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error) {
+        console.error('Error updating note:', error);
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to update note' }, { status: 500 });
     }
 }
 
 export async function DELETE(
-    request: NextRequest,
-    { params }: { params: { id: string } }
+    request: Request,
+    { params }: { params: RouteParams }
 ) {
     try {
         const session = await auth();
@@ -60,15 +64,13 @@ export async function DELETE(
             return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
         }
 
-        // Get user ID from email
         const user = await mongoose.models.User.findOne({ email: session.user.email });
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
         const { id } = params;
-
-        const note = await Note.findOneAndDelete({ _id: id, userId: user._id });
+        const note = await Note.findOne({ _id: id, userId: user._id });
         
         if (!note) {
             return NextResponse.json(
@@ -77,19 +79,22 @@ export async function DELETE(
             );
         }
 
+        await note.deleteOne();
+
         return NextResponse.json({
             message: "Note deleted successfully",
             success: true
         });
 
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error) {
+        console.error('Error deleting note:', error);
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to delete note' }, { status: 500 });
     }
 }
 
 export async function GET(
-    request: NextRequest,
-    { params }: { params: { id: string } }
+    request: Request,
+    { params }: { params: RouteParams }
 ) {
     try {
         const session = await auth();
@@ -97,14 +102,12 @@ export async function GET(
             return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
         }
 
-        // Get user ID from email
         const user = await mongoose.models.User.findOne({ email: session.user.email });
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
         const { id } = params;
-
         const note = await Note.findOne({ _id: id, userId: user._id });
         
         if (!note) {
@@ -120,7 +123,8 @@ export async function GET(
             note
         });
 
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error) {
+        console.error('Error fetching note:', error);
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to fetch note' }, { status: 500 });
     }
 }
